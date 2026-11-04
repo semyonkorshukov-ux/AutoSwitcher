@@ -16,12 +16,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
 
         if let button = statusItem.button {
-            if let icon = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "AutoSwitcher") {
-                icon.isTemplate = true
-                button.image = icon
-            } else {
-                button.title = "RU·EN"
-            }
+            button.image = TrayIcon.make()
             button.toolTip = "AutoSwitcher — автоматическое переключение раскладки"
         }
         updateIconState()
