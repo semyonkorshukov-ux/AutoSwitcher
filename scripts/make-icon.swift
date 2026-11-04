@@ -1,80 +1,159 @@
-// Отрисовка иконки AutoSwitcher: индиго-синий градиент, белая клавиатура,
-// янтарная клавиша-акцент. Запуск: swift scripts/make-icon.swift <папка-выхода>
+// Отрисовка иконки AutoSwitcher: индиго-синий фон и клавиатура Mac с настоящей раскладкой.
+// Янтарным выделена клавиша глобуса — именно она переключает языки.
+// Запуск: swift scripts/make-icon.swift <папка-выхода>
 import AppKit
 
 let outDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
 
-func roundedPath(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ r: CGFloat) -> CGPath {
-    CGPath(roundedRect: CGRect(x: x, y: y, width: w, height: h), cornerWidth: r, cornerHeight: r, transform: nil)
+func roundedPath(_ rect: CGRect, _ r: CGFloat) -> CGPath {
+    CGPath(roundedRect: rect, cornerWidth: r, cornerHeight: r, transform: nil)
 }
 
 func color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> CGColor {
     NSColor(calibratedRed: r / 255, green: g / 255, blue: b / 255, alpha: a).cgColor
 }
 
-func drawIcon(_ cg: CGContext) {
-    // Фон: сквиркл с диагональным градиентом индиго → синий.
+// Раскладка в единицах ширины клавиши: каждый ряд занимает ровно 14,5 единицы.
+struct Key {
+    var width: CGFloat = 1
+    var latin = ""
+    var cyrillic = ""
+    var isGlobe = false
+}
+
+func letters(_ latin: String, _ cyrillic: String) -> [Key] {
+    zip(latin, cyrillic).map { Key(latin: String($0), cyrillic: String($1)) }
+}
+
+func blanks(_ count: Int) -> [Key] {
+    Array(repeating: Key(), count: count)
+}
+
+let rows: [[Key]] = [
+    blanks(13) + [Key(width: 1.5)],
+    [Key(width: 1.5)] + letters("QWERTYUIOP", "ЙЦУКЕНГШЩЗ") + letters("[]", "ХЪ") + blanks(1),
+    [Key(width: 1.75)] + letters("ASDFGHJKL", "ФЫВАПРОЛД") + letters(";'", "ЖЭ") + [Key(width: 1.75)],
+    [Key(width: 2.25)] + letters("ZXCVBNM", "ЯЧСМИТЬ") + letters(",.", "БЮ") + blanks(1) + [Key(width: 2.25)],
+    [Key(isGlobe: true), Key(), Key(), Key(width: 1.25), Key(width: 5), Key(width: 1.25), Key()]
+]
+
+let plateRect = CGRect(x: 124, y: 362, width: 776, height: 300)
+let plateInset: CGFloat = 18
+let unit = (plateRect.width - 2 * plateInset) / 14.5
+let rowHeight = (plateRect.height - 2 * plateInset) / CGFloat(rows.count)
+let keyGap: CGFloat = 5
+let keyRadius: CGFloat = 8
+
+let keyFill = color(255, 255, 255)
+let accentFill = color(245, 158, 11)
+let plateFill = color(203, 209, 232)
+
+func drawKey(_ cg: CGContext, _ rect: CGRect, fill: CGColor) {
     cg.saveGState()
-    cg.addPath(roundedPath(0, 0, 1024, 1024, 232))
+    cg.setShadow(offset: CGSize(width: 0, height: -2), blur: 2, color: color(30, 41, 89, 0.3))
+    cg.addPath(roundedPath(rect, keyRadius))
+    cg.setFillColor(fill)
+    cg.fillPath()
+    cg.restoreGState()
+}
+
+func drawText(_ text: String, in rect: CGRect, size: CGFloat, weight: NSFont.Weight, color textColor: CGColor) {
+    let string = NSAttributedString(string: text, attributes: [
+        .font: NSFont.systemFont(ofSize: size, weight: weight),
+        .foregroundColor: NSColor(cgColor: textColor) ?? .black
+    ])
+    let measured = string.size()
+    string.draw(at: CGPoint(x: rect.midX - measured.width / 2, y: rect.midY - measured.height / 2))
+}
+
+func drawGlobe(_ cg: CGContext, in rect: CGRect) {
+    let d = min(rect.width, rect.height) * 0.56
+    let circle = CGRect(x: rect.midX - d / 2, y: rect.midY - d / 2, width: d, height: d)
+    cg.saveGState()
+    cg.setStrokeColor(color(255, 255, 255))
+    cg.setLineWidth(3)
+    cg.strokeEllipse(in: circle)
+    cg.strokeEllipse(in: circle.insetBy(dx: d * 0.25, dy: 0))
+    cg.move(to: CGPoint(x: circle.minX, y: circle.midY))
+    cg.addLine(to: CGPoint(x: circle.maxX, y: circle.midY))
+    cg.strokePath()
+    cg.restoreGState()
+}
+
+func drawIcon(_ cg: CGContext, px: Int) {
+    // Фон: сквиркл по сетке значков macOS (поля 100 из 1024) с лёгкой тенью.
+    let background = CGRect(x: 100, y: 100, width: 824, height: 824)
+    cg.saveGState()
+    cg.setShadow(offset: CGSize(width: 0, height: -10), blur: 20, color: color(0, 0, 0, 0.3))
+    cg.addPath(roundedPath(background, 185))
+    cg.setFillColor(color(67, 100, 238))
+    cg.fillPath()
+    cg.restoreGState()
+
+    cg.saveGState()
+    cg.addPath(roundedPath(background, 185))
     cg.clip()
-    let grad = CGGradient(
+    let gradient = CGGradient(
         colorsSpace: CGColorSpaceCreateDeviceRGB(),
         colors: [color(99, 102, 241), color(37, 99, 235)] as CFArray,
         locations: [0, 1]
     )!
-    cg.drawLinearGradient(grad, start: CGPoint(x: 0, y: 1024), end: CGPoint(x: 1024, y: 0), options: [])
+    cg.drawLinearGradient(gradient, start: CGPoint(x: 100, y: 924), end: CGPoint(x: 924, y: 100), options: [])
     cg.restoreGState()
 
-    // Плашка клавиатуры с мягкой тенью.
-    let plateX: CGFloat = 172, plateY: CGFloat = 322, plateW: CGFloat = 680, plateH: CGFloat = 388
+    // Корпус клавиатуры.
     cg.saveGState()
-    cg.setShadow(offset: CGSize(width: 0, height: -14), blur: 34, color: color(0, 0, 0, 0.28))
-    cg.addPath(roundedPath(plateX, plateY, plateW, plateH, 56))
-    cg.setFillColor(color(255, 255, 255))
+    cg.setShadow(offset: CGSize(width: 0, height: -12), blur: 28, color: color(15, 23, 60, 0.4))
+    cg.addPath(roundedPath(plateRect, 26))
+    cg.setFillColor(plateFill)
     cg.fillPath()
     cg.restoreGState()
 
-    // Клавиши.
-    let margin: CGFloat = 44
-    let keyH: CGFloat = 72
-    let gap: CGFloat = 20
-    let innerX = plateX + margin
-    let innerW = plateW - 2 * margin
-    let keyFill = color(199, 210, 254)   // светло-индиговые клавиши
-    let accentFill = color(245, 158, 11) // янтарный акцент
+    let left = plateRect.minX + plateInset
+    let top = plateRect.maxY - plateInset
 
-    func keyRow(count: Int, yTop: CGFloat, accentIndex: Int? = nil) {
-        let w = (innerW - CGFloat(count - 1) * gap) / CGFloat(count)
-        for i in 0..<count {
-            let x = innerX + CGFloat(i) * (w + gap)
-            cg.addPath(roundedPath(x, yTop - keyH, w, keyH, 16))
-            cg.setFillColor(i == accentIndex ? accentFill : keyFill)
-            cg.fillPath()
+    // На мелких размерах подписи превратились бы в шум.
+    let showLatin = px >= 256
+    let showCyrillic = px >= 512
+    let legend = color(55, 65, 100)
+    let secondLegend = color(79, 70, 229)
+
+    for (index, row) in rows.enumerated() {
+        let y = top - rowHeight * CGFloat(index + 1)
+        var x = left
+        for key in row {
+            let rect = CGRect(x: x + keyGap / 2, y: y + keyGap / 2,
+                              width: key.width * unit - keyGap, height: rowHeight - keyGap)
+            drawKey(cg, rect, fill: key.isGlobe ? accentFill : keyFill)
+            if key.isGlobe {
+                drawGlobe(cg, in: rect)
+            } else if !key.latin.isEmpty, showLatin {
+                if showCyrillic {
+                    let w = rect.width * 0.52, h = rect.height * 0.52
+                    drawText(key.latin, in: CGRect(x: rect.minX + 2, y: rect.maxY - h - 1, width: w, height: h),
+                             size: 16, weight: .semibold, color: legend)
+                    drawText(key.cyrillic, in: CGRect(x: rect.maxX - w - 2, y: rect.minY + 1, width: w, height: h),
+                             size: 16, weight: .semibold, color: secondLegend)
+                } else {
+                    drawText(key.latin, in: rect, size: 24, weight: .semibold, color: legend)
+                }
+            }
+            x += key.width * unit
         }
     }
 
-    let row1Top = plateY + plateH - margin              // 666
-    let row2Top = row1Top - keyH - gap                  // 574
-    let row3Top = row2Top - keyH - gap                  // 482
-
-    keyRow(count: 10, yTop: row1Top)
-    keyRow(count: 9, yTop: row2Top, accentIndex: 4)
-    // Нижний ряд: 4 клавиши + пробел + 2 клавиши.
-    let sideKeyW = (innerW - 190 - 6 * gap) / 6
-    var x = innerX
-    for _ in 0..<4 {
-        cg.addPath(roundedPath(x, row3Top - keyH, sideKeyW, keyH, 16))
-        cg.setFillColor(keyFill); cg.fillPath()
-        x += sideKeyW + gap
+    // Стрелки — перевёрнутая буква «Т» в правом конце нижнего ряда.
+    let bottomY = top - rowHeight * CGFloat(rows.count)
+    let arrowsX = left + 11.5 * unit
+    let half = (rowHeight - keyGap) / 2 - 1
+    func arrowKey(column: CGFloat, upper: Bool) {
+        let y = bottomY + keyGap / 2 + (upper ? half + 2 : 0)
+        drawKey(cg, CGRect(x: arrowsX + column * unit + keyGap / 2, y: y, width: unit - keyGap, height: half), fill: keyFill)
     }
-    cg.addPath(roundedPath(x, row3Top - keyH, 190, keyH, 16))
-    cg.setFillColor(color(148, 163, 236)); cg.fillPath()
-    x += 190 + gap
-    for _ in 0..<2 {
-        cg.addPath(roundedPath(x, row3Top - keyH, sideKeyW, keyH, 16))
-        cg.setFillColor(keyFill); cg.fillPath()
-        x += sideKeyW + gap
-    }
+    arrowKey(column: 0, upper: false)
+    arrowKey(column: 1, upper: true)
+    arrowKey(column: 1, upper: false)
+    arrowKey(column: 2, upper: false)
 }
 
 func render(px: Int) -> NSBitmapImageRep? {
@@ -89,7 +168,7 @@ func render(px: Int) -> NSBitmapImageRep? {
     NSGraphicsContext.current = g
     let cg = g.cgContext
     cg.scaleBy(x: CGFloat(px) / 1024, y: CGFloat(px) / 1024)
-    drawIcon(cg)
+    drawIcon(cg, px: px)
     NSGraphicsContext.restoreGraphicsState()
     return rep
 }

@@ -1,11 +1,13 @@
 import Foundation
 
 /// Локальный журнал отладки: ~/Library/Logs/AutoSwitcher/debug.log
-/// В режиме отладки пишет нажатые клавиши — файл остаётся на вашей машине,
-/// ничего не отправляется. Отключается в настройках.
+/// Пишет только служебные события и никогда — набранный текст.
+/// По умолчанию выключен, включается только командой
+/// `defaults write local.autoswitcher.app isDebugLogEnabled -bool true`.
+/// Файл перезаписывается при каждом запуске.
 final class Log {
     static let shared = Log()
-    var isEnabled = true
+    var isEnabled = false
 
     private let queue = DispatchQueue(label: "local.autoswitcher.log")
     private let url: URL

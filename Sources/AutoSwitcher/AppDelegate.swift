@@ -20,8 +20,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.service.reset()
         }
 
+        // Без deliverImmediately приложение без окон получало бы уведомление с задержкой.
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(accessibilityListDidChange),
+            name: NSNotification.Name("com.apple.accessibility.api"),
+            object: nil,
+            suspensionBehavior: .deliverImmediately
+        )
+
         service.startTap()
         service.startPermissionsWatch()
+
+        // Без доступа приложение не работает: при первом запуске хватает системного запроса,
+        // а если его уже отклоняли, повторно он не появится — тогда показываем настройки.
+        if !service.permissionsOK, service.requestAccessibility() {
+            menuController?.showSettings()
+        }
+    }
+
+    @objc private func accessibilityListDidChange() {
+        service.accessibilityListDidChange()
+    }
+
+    /// Повторный запуск приложения без окон иначе не показал бы ничего,
+    /// а значок в меню-баре может быть скрыт вырезом экрана.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        menuController?.showSettings()
+        return false
     }
 }
 

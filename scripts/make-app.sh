@@ -1,5 +1,5 @@
 #!/bin/bash
-# Собирает AutoSwitcher.app и DMG-образ для установки перетаскиванием.
+# Собирает AutoSwitcher.app. DMG собирается отдельно: scripts/make-dmg.sh.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -33,9 +33,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.2.0</string>
+    <string>0.3.0</string>
     <key>CFBundleVersion</key>
-    <string>2</string>
+    <string>3</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
@@ -50,6 +50,3 @@ PLIST
 
 codesign --force --sign - "$APP"
 echo "Собрано: $(pwd)/$APP"
-
-# DMG: приложение + ярлык на «Программы» — классическая установка перетаскиванием.
-./scripts/make-dmg.sh

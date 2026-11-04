@@ -12,8 +12,8 @@ public enum AppFilter {
         "com.mitchellh.ghostty"
     ]
 
-    public static func allows(bundleID: String?) -> Bool {
+    public static func allows(bundleID: String?, userExcluded: Set<String> = []) -> Bool {
         guard let bundleID else { return true }
-        return !defaultExcludedBundleIDs.contains(bundleID)
+        return !defaultExcludedBundleIDs.contains(bundleID) && !userExcluded.contains(bundleID)
     }
 }

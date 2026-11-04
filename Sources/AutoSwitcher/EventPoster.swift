@@ -27,6 +27,8 @@ final class EventPoster {
 
     private func postSimple(keyCode: CGKeyCode, keyDown: Bool) {
         guard let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: keyDown) else { return }
+        // Shift может быть ещё зажат пользователем — на Backspace он влиять не должен.
+        event.flags = []
         event.setIntegerValueField(.eventSourceUserData, value: EventPoster.marker)
         event.post(tap: .cghidEventTap)
     }
