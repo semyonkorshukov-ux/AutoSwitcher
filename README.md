@@ -100,3 +100,7 @@ Sources/TestsRunner/          — тесты (XCTest недоступен без
 scripts/make-app.sh           — сборка .app
 scripts/make-dmg.sh           — установочный DMG из готового .app
 ```
+
+## Лицензия
+
+Код распространяется по лицензии [MIT](LICENSE). Файлы словарей в `Sources/AutoSwitcherCore/Resources/` — по [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), см. раздел «Словари».
